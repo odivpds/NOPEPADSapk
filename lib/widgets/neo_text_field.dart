@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import '../theme.dart';
 
 class NeoTextField extends StatefulWidget {
   final TextEditingController controller;
@@ -55,7 +56,7 @@ class _NeoTextFieldState extends State<NeoTextField> {
           children: [
             Text(
               widget.label.toUpperCase(),
-              style: const TextStyle(
+              style: NeoTheme.headingFont(
                 fontWeight: FontWeight.w900,
                 fontSize: 14,
                 letterSpacing: 1.0,
@@ -66,7 +67,7 @@ class _NeoTextFieldState extends State<NeoTextField> {
               const SizedBox(width: 8),
               Text(
                 widget.hint!,
-                style: const TextStyle(
+                style: NeoTheme.sansFont(
                   fontWeight: FontWeight.bold,
                   fontSize: 10,
                   color: Colors.black54,
@@ -94,7 +95,7 @@ class _NeoTextFieldState extends State<NeoTextField> {
             focusNode: _focusNode,
             obscureText: _obscure,
             keyboardType: widget.keyboardType,
-            style: const TextStyle(
+            style: NeoTheme.sansFont(
               fontWeight: FontWeight.bold,
               fontSize: 16,
               color: Colors.black,
@@ -118,7 +119,7 @@ class _NeoTextFieldState extends State<NeoTextField> {
             ),
           ),
         ),
-        if (_isFocused) const SizedBox(height: 5), // Compensate for translation
+        if (_isFocused) const SizedBox(height: 5),
       ],
     );
   }

@@ -1,6 +1,7 @@
 ﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class MotivationalQuote extends StatefulWidget {
   final String userName;
@@ -46,58 +47,38 @@ class _MotivationalQuoteState extends State<MotivationalQuote> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentQuote = _quotes[_quoteIndex].toUpperCase();
-    
-    // Split text into words, then letters to handle wrapping correctly
-    List<Widget> wordWidgets = [];
-    final words = currentQuote.split(' ');
-    
-    for (int i = 0; i < words.length; i++) {
-      final word = words[i];
-      final isLast = i == words.length - 1;
-      
-      // Split word into letters
-      List<Widget> letterWidgets = [];
-      for (int j = 0; j < word.length; j++) {
-        final char = word[j];
-        if (char == '\n') {
-          // Force a new line by returning a container that takes full width
-          // However, Wrap doesn't break on full width unless it's a specific width.
-          // For simplicity, we just keep the \n logic in text or use a different approach.
-          // Since it's easier to just animate whole words or lines:
-        }
-      }
-    }
 
-    // A simpler approach with flutter_animate is to just animate words
-    // Or we can animate characters by using a Wrap
-    
-    // Let's split by characters and preserve spaces
+    final textColor = isDark ? Colors.white : Colors.black;
+    final textShadow = isDark
+        ? const Shadow(color: Colors.black, offset: Offset(3, 3))
+        : const Shadow(color: Colors.white, offset: Offset(2, 2));
+
     List<Widget> characters = [];
     for (int i = 0; i < currentQuote.length; i++) {
       final char = currentQuote[i];
       if (char == '\n') {
-         characters.add(const SizedBox(width: double.infinity));
+        characters.add(const SizedBox(width: double.infinity));
       } else {
-         characters.add(Text(
-           char,
-           style: const TextStyle(
-             color: Colors.white,
-             fontSize: 48,
-             fontWeight: FontWeight.w900,
-             letterSpacing: 2.0,
-             height: 1.2,
-             shadows: [
-               Shadow(color: Colors.black, offset: Offset(4, 4)),
-             ],
-           ),
-         ));
+        characters.add(Text(
+          char,
+          style: GoogleFonts.spaceGrotesk(
+            color: textColor,
+            fontSize: 48,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2.0,
+            height: 1.2,
+            shadows: [textShadow],
+          ),
+        ));
       }
     }
 
     return SizedBox(
       width: double.infinity,
-      child: Wrap(key: ValueKey(_quoteIndex),
+      child: Wrap(
+        key: ValueKey(_quoteIndex),
         alignment: WrapAlignment.end,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: characters
@@ -109,4 +90,3 @@ class _MotivationalQuoteState extends State<MotivationalQuote> {
     );
   }
 }
-

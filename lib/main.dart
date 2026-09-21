@@ -7,11 +7,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'theme.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:desktop_multi_window/desktop_multi_window.dart';
+import 'package:window_manager/window_manager.dart';
 import 'screens/login_screen.dart';
 import 'screens/notes_screen.dart';
 import 'screens/note_editor_screen.dart';
+import 'services/local_database_service.dart';
+import 'widgets/neo_desktop_window_frame.dart';
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Load environment variables for Supabase
@@ -19,15 +26,98 @@ void main() async {
   
   await Supabase.initialize(
     url: dotenv.env['NEXT_PUBLIC_SUPABASE_URL'] ?? '',
+    // ignore: deprecated_member_use
     anonKey: dotenv.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ?? '',
   );
 
+  // Initialize local SQLite database
+  final localDb = LocalDatabaseService();
+  await localDb.initDatabase();
+
   final prefs = await SharedPreferences.getInstance();
   
+  // Check if this instance is a sub-window (Floating Note Editor)
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    try {
+      await windowManager.ensureInitialized();
+      final windowController = await WindowController.fromCurrentEngine();
+      if (windowController.arguments.isNotEmpty) {
+        final argument = jsonDecode(windowController.arguments) as Map<String, dynamic>;
+        final noteId = argument['noteId'] as String?;
+        if (noteId != null && noteId.isNotEmpty) {
+          await windowManager.setTitleBarStyle(TitleBarStyle.hidden, windowButtonVisibility: false);
+          await windowManager.setSize(const Size(460, 520));
+          await windowManager.setMinimumSize(const Size(360, 380));
+          await windowManager.setTitle('NOPEPADS');
+
+          runApp(
+            ProviderScope(
+              overrides: [
+                sharedPreferencesProvider.overrideWithValue(prefs),
+                localDatabaseProvider.overrideWithValue(localDb),
+              ],
+              child: NoteEditorApp(
+                windowId: windowController.windowId,
+                noteId: noteId,
+              ),
+            ),
+          );
+          return;
+        }
+      }
+    } catch (_) {}
+  }
+
+  if (args.firstOrNull == 'multi_window') {
+    final windowId = args[1];
+    final argument = args.length > 2 && args[2].isNotEmpty
+        ? jsonDecode(args[2]) as Map<String, dynamic>
+        : <String, dynamic>{};
+    final noteId = argument['noteId'] as String?;
+
+    if (noteId != null && noteId.isNotEmpty) {
+      if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+        try {
+          await windowManager.ensureInitialized();
+          await windowManager.setTitleBarStyle(TitleBarStyle.hidden, windowButtonVisibility: false);
+          await windowManager.setSize(const Size(460, 520));
+          await windowManager.setMinimumSize(const Size(360, 380));
+          await windowManager.setTitle('NOPEPADS');
+        } catch (_) {}
+      }
+
+      runApp(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            localDatabaseProvider.overrideWithValue(localDb),
+          ],
+          child: NoteEditorApp(
+            windowId: windowId,
+            noteId: noteId,
+          ),
+        ),
+      );
+      return;
+    }
+  }
+
+  // Configure desktop main window
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    try {
+      await windowManager.ensureInitialized();
+      await windowManager.setTitleBarStyle(TitleBarStyle.hidden, windowButtonVisibility: false);
+      await windowManager.setMinimumSize(const Size(720, 500));
+      await windowManager.setTitle('NOPEPADS');
+      await windowManager.setPreventClose(true);
+    } catch (_) {}
+  }
+
   runApp(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        localDatabaseProvider.overrideWithValue(localDb),
       ],
       child: const NeoNotesApp(),
     ),
@@ -50,7 +140,8 @@ class NeoNotesApp extends ConsumerWidget {
       theme: NeoTheme.lightTheme,
       darkTheme: NeoTheme.darkTheme,
       themeMode: themeMode,
-      initialRoute: Supabase.instance.client.auth.currentUser != null ? '/notes' : '/login',
+      // Always start at notes — login is optional
+      initialRoute: '/notes',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/notes': (context) => const NotesScreen(),
@@ -75,7 +166,11 @@ class NeoNotesApp extends ConsumerWidget {
         Locale('en', 'US'),
       ],
       debugShowCheckedModeBanner: false,
-
+      builder: (context, child) {
+        return NeoDesktopWindowFrame(
+          child: child ?? const SizedBox(),
+        );
+      },
     );
   }
 }

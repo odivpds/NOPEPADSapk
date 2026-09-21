@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import '../theme.dart';
 
 class NeoButton extends StatefulWidget {
   final String text;
@@ -37,47 +38,48 @@ class _NeoButtonState extends State<NeoButton> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) {
-        setState(() => _isPressed = false);
-        widget.onPressed();
-      },
-      onTapCancel: () => setState(() => _isPressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        transform: transform,
-        height: widget.height,
-        decoration: BoxDecoration(
-          color: widget.backgroundColor,
-          border: Border.all(color: Colors.black, width: 4.0),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black,
-              offset: offset,
-            ),
-          ],
-        ),
-        child: Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (widget.icon != null) ...[
-                widget.icon!,
-                const SizedBox(width: 8),
-              ],
-              Text(
-                widget.text.toUpperCase(),
-                style: TextStyle(
-                  color: widget.textColor,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                  letterSpacing: 1.0,
-                ),
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) {
+          setState(() => _isPressed = false);
+          widget.onPressed();
+        },
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          transform: transform,
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: widget.backgroundColor,
+            border: Border.all(color: Colors.black, width: 4.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black,
+                offset: offset,
               ),
             ],
           ),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (widget.icon != null) ...[
+                  widget.icon!,
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  widget.text.toUpperCase(),
+                  style: NeoTheme.headingFont(
+                    color: widget.textColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
-    ));
+    );
   }
 }
