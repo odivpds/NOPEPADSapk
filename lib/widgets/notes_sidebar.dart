@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../theme.dart';
 
 class NotesSidebar extends StatefulWidget {
@@ -61,7 +61,12 @@ class _NotesSidebarState extends State<NotesSidebar> {
                     ]
                   : [],
             ),
-            padding: const EdgeInsets.only(top: 80, left: 16, right: 16),
+            padding: EdgeInsets.only(
+              top: 40 + MediaQuery.paddingOf(context).top,
+              left: 16,
+              right: 16,
+              bottom: 16 + MediaQuery.paddingOf(context).bottom,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

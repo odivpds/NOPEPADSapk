@@ -457,7 +457,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       backgroundColor: theme.neoBackground,
-      body: Row(
+      body: SafeArea(
+        child: Row(
         children: [
           // Left Side (Hidden on Mobile)
           if (isDesktop)
@@ -617,6 +618,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

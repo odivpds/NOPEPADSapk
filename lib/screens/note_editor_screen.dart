@@ -1109,10 +1109,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Window
   Widget _buildTopBar(NoteColorDef colorDef, bool isDark) {
     final menuBorderColor = colorDef.id == 'Charcoal' ? const Color(0xFF71717A) : colorDef.bg;
     final itemColor = isDark ? Colors.white : const Color(0xFF18181B);
+    final topPadding = widget.isStandaloneWindow ? 0.0 : MediaQuery.paddingOf(context).top;
 
     return DragToMoveArea(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: EdgeInsets.only(
+          left: 10,
+          right: 10,
+          top: 4 + topPadding,
+          bottom: 4,
+        ),
         decoration: BoxDecoration(
           color: colorDef.bg,
           border: const Border(bottom: BorderSide(color: Colors.black, width: 4)),

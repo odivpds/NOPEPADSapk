@@ -284,6 +284,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     final theme = context;
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 640;
+    final isMobile = screenWidth < 640;
+    final topSafeArea = MediaQuery.paddingOf(context).top;
+    final bottomSafeArea = MediaQuery.paddingOf(context).bottom;
 
     double getGridWidth() {
       if (screenWidth >= 1600) return 660;
@@ -311,7 +314,12 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             children: [
               // Header (Golden Yellow in Light Mode, Dark Slate in Dark Mode)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: EdgeInsets.only(
+                  left: isMobile ? 16 : 24,
+                  right: isMobile ? 16 : 24,
+                  top: 16 + topSafeArea,
+                  bottom: 16,
+                ),
                 decoration: BoxDecoration(
                   color: theme.neoHeaderBg,
                   border: const Border(bottom: BorderSide(color: Colors.black, width: 4)),
@@ -327,8 +335,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                           child: Text(
                             settings.appTitle,
                             style: NeoTheme.pixelFont(
-                              fontSize: 22,
-                              letterSpacing: 2.0,
+                              fontSize: isMobile ? 18 : 22,
+                              letterSpacing: isMobile ? 1.0 : 2.0,
                               color: Colors.white,
                               shadows: const [
                                 Shadow(color: Colors.black, offset: Offset(3, 3)),
@@ -464,7 +472,10 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                         color: theme.neoAppBg,
                         border: const Border(right: BorderSide(color: Colors.black, width: 4)),
                       ),
-                      padding: const EdgeInsets.all(24.0),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 16.0 : 24.0,
+                        vertical: isMobile ? 16.0 : 24.0,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -570,7 +581,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                                           ),
                                           child: ListView(
                                             controller: _scrollController,
-                                            padding: const EdgeInsets.only(bottom: 80, right: 16),
+                                            padding: EdgeInsets.only(bottom: 80 + bottomSafeArea, right: 16),
                                             children: [
                                               SmoothMouseScroll(
                                                 controller: _scrollController,
@@ -626,7 +637,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           // Floating Select Mode Action Bar (Bottom Center)
           if (_isSelectMode)
             Positioned(
-              bottom: 24,
+              bottom: 24 + bottomSafeArea,
               left: 16,
               right: 16,
               child: Center(
