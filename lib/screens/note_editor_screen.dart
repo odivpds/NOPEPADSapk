@@ -815,6 +815,31 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Window
     }
   }
 
+  Future<void> _archiveNote() async {
+    _debounceTimer?.cancel();
+    _hasUnsavedChanges = false;
+    final repo = ref.read(notesRepositoryProvider);
+    if (_existingNote != null) {
+      await repo.toggleArchive(_existingNote!.id, !_existingNote!.isArchived);
+      await MultiWindowService.notifyMainWindowNoteChanged(_existingNote!.id);
+    }
+    if (widget.isStandaloneWindow) {
+      try {
+        await windowManager.hide();
+      } catch (_) {}
+      if (widget.noteId != null) {
+        MultiWindowService.notifyMainWindowClosed(widget.noteId!);
+      }
+      try {
+        await windowManager.close();
+      } catch (_) {}
+      return;
+    }
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   Widget _buildColorGrid(NoteColorDef activeColorDef) {
     // Exclude 'Default' so we only show the 7 unique distinct colors
     final displayColors = noteColors.where((c) => c.id != 'Default').toList();
@@ -1199,6 +1224,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Window
                       } else if (value == 2) {
                         // In Microsoft Sticky Notes, "Notes list" reveals and focuses the main window
                         await MultiWindowService.showMainWindow();
+                        if (!widget.isStandaloneWindow && mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      } else if (value == 4) {
+                        _archiveNote();
                       } else if (value == 3) {
                         _deleteNote();
                       }
@@ -1231,6 +1261,23 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Window
                             const SizedBox(width: 12),
                             Text(
                               "Notes list",
+                              style: NeoTheme.headingFont(color: itemColor, fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 4,
+                        child: Row(
+                          children: [
+                            Icon(
+                              _existingNote?.isArchived == true ? Icons.unarchive_outlined : Icons.archive_outlined,
+                              color: itemColor,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              _existingNote?.isArchived == true ? "Unarchive Note" : "Archive Note",
                               style: NeoTheme.headingFont(color: itemColor, fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ],

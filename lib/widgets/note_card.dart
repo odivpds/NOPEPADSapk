@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/note.dart';
@@ -51,6 +53,7 @@ class _NoteCardState extends State<NoteCard> {
 
     final cardBg = context.isDark ? const Color(0xFF2A2A35) : Colors.white;
     final textFg = context.isDark ? Colors.white : Colors.black;
+    final bool isMobile = !kIsWeb && (Platform.isIOS || Platform.isAndroid) || MediaQuery.of(context).size.width < 768;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -68,6 +71,14 @@ class _NoteCardState extends State<NoteCard> {
           widget.onTap();
         },
         onTapCancel: () => setState(() => _isPressed = false),
+        onLongPress: () {
+          setState(() => _isPressed = false);
+          if (widget.isSelectMode && widget.onToggleSelect != null) {
+            widget.onToggleSelect!();
+            return;
+          }
+          _showNoteMenu(context);
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
           transform: transform,
@@ -122,6 +133,22 @@ class _NoteCardState extends State<NoteCard> {
                         ),
                         if (widget.isSelectMode)
                           const SizedBox(width: 32)
+                        else if (isMobile)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                DateFormat('d MMM, HH:mm').format(widget.note.updatedAt),
+                                style: NeoTheme.sansFont(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: colorDef.text.withValues(alpha: 0.75),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              _buildMenuButton(context, colorDef.text),
+                            ],
+                          )
                         else
                           AnimatedCrossFade(
                             duration: const Duration(milliseconds: 150),
@@ -199,14 +226,25 @@ class _NoteCardState extends State<NoteCard> {
   }
 
   Widget _buildMenuButton(BuildContext context, Color iconColor) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () => _showNoteMenu(context),
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          child: Icon(Icons.more_horiz, size: 22, color: iconColor),
+    return Semantics(
+      label: 'Note options',
+      button: true,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTapDown: (_) {
+            // Prevent outer card from triggering press state
+          },
+          onTap: () => _showNoteMenu(context),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(Icons.more_horiz, size: 22, color: iconColor),
+          ),
         ),
       ),
     );
@@ -223,18 +261,22 @@ class _NoteCardState extends State<NoteCard> {
 
     showMenu<String>(
       context: context,
-      position: RelativeRect.fromLTRB(
-        buttonPosition.dx + button.size.width - 180,
-        buttonPosition.dy + 40,
-        buttonPosition.dx + button.size.width,
-        buttonPosition.dy + button.size.height,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(
+          buttonPosition.dx + button.size.width - 200,
+          buttonPosition.dy + 44,
+          200,
+          0,
+        ),
+        Offset.zero & overlay.size,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: Colors.black, width: 4),
       ),
       color: context.isDark ? const Color(0xFF27272A) : Colors.white,
-      elevation: 0,
+      elevation: 6,
+      shadowColor: Colors.black,
       items: [
         if (!isTrash)
           _buildPopupItem(
