@@ -1,0 +1,49 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.4'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Prepare environment file
+        run: |
+          if [ -f .env.example ]; then
+            cp .env.example .env
+          else
+            echo 'NEXT_PUBLIC_SUPABASE_URL=https://jbggdmevftknisszvmxv.supabase.co' > .env
+            echo 'NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_9w8fVdpY_PYHZe-AtG_FLw_nPwlIgzO' >> .env
+          fi
+
+      - name: Build iOS Application (No Codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r NOPEPADS.ipa Payload
+          echo 'NOPEPADS.ipa packaged successfully!'
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NOPEPADS-iOS-IPA
+          path: NOPEPADS.ipa
+          retention-days: 7
