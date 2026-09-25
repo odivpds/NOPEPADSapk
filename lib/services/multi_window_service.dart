@@ -9,9 +9,9 @@ final multiWindowServiceProvider = Provider<MultiWindowService>((ref) {
   return MultiWindowService();
 });
 
-const _channel = WindowMethodChannel(
-  'nopepads_events',
-  mode: ChannelMode.bidirectional,
+const _toMainChannel = WindowMethodChannel(
+  'nopepads_to_main',
+  mode: ChannelMode.unidirectional,
 );
 
 class MultiWindowService {
@@ -21,6 +21,8 @@ class MultiWindowService {
 
   /// Map of noteId -> windowId
   final Map<String, String> _openWindows = {};
+
+  int _windowCascadeOffset = 0;
 
   bool get isDesktopPlatform =>
       !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
@@ -65,10 +67,16 @@ class MultiWindowService {
     }
 
     try {
+      _windowCascadeOffset = (_windowCascadeOffset + 1) % 8;
+      final cascadeX = 35.0 * _windowCascadeOffset;
+      final cascadeY = 30.0 * _windowCascadeOffset;
+
       final controller = await WindowController.create(
         WindowConfiguration(
           arguments: jsonEncode({
             'noteId': noteId,
+            'offsetX': cascadeX,
+            'offsetY': cascadeY,
           }),
           hiddenAtLaunch: true,
         ),
@@ -88,7 +96,7 @@ class MultiWindowService {
   }) {
     if (!isDesktopPlatform) return;
 
-    _channel.setMethodCallHandler((call) async {
+    _toMainChannel.setMethodCallHandler((call) async {
       if (call.method == 'noteChanged' || call.method == 'refreshNotes') {
         // Only refresh UI if main window is actually visible to avoid background lag
         if (!isMainWindowHidden) {
@@ -128,7 +136,7 @@ class MultiWindowService {
   static Future<void> notifyMainWindowNoteChanged(String noteId) async {
     if (kIsWeb || (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS)) return;
     try {
-      await _channel.invokeMethod('noteChanged', noteId).catchError((_) => null);
+      await _toMainChannel.invokeMethod('noteChanged', noteId).catchError((_) => null);
     } catch (_) {}
   }
 
@@ -136,7 +144,7 @@ class MultiWindowService {
   static Future<void> notifyMainWindowClosed(String noteId) async {
     if (kIsWeb || (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS)) return;
     try {
-      await _channel.invokeMethod('windowClosed', noteId).catchError((_) => null);
+      await _toMainChannel.invokeMethod('windowClosed', noteId).catchError((_) => null);
     } catch (_) {}
   }
 
@@ -144,25 +152,35 @@ class MultiWindowService {
   static Future<void> showMainWindow() async {
     if (kIsWeb || (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS)) return;
     try {
-      await _channel.invokeMethod('showMainWindow').catchError((_) => null);
+      await _toMainChannel.invokeMethod('showMainWindow').catchError((_) => null);
     } catch (_) {}
   }
+
+  static bool _isRequestingNewNote = false;
 
   /// Request main window to create a new note and open its window
   static Future<void> createNewNoteFromSubWindow() async {
     if (kIsWeb || (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS)) return;
+    if (_isRequestingNewNote) return;
+    _isRequestingNewNote = true;
     try {
-      await _channel.invokeMethod('createNewNote').catchError((_) => null);
-    } catch (_) {}
+      await _toMainChannel.invokeMethod('createNewNote').catchError((e) {
+        debugPrint('Error invoking createNewNote: $e');
+        return null;
+      });
+    } catch (e) {
+      debugPrint('Error in createNewNoteFromSubWindow: $e');
+    } finally {
+      Future.delayed(const Duration(milliseconds: 350), () {
+        _isRequestingNewNote = false;
+      });
+    }
   }
 
   /// Broadcast theme changes from main window to all active floating sticky notes
   Future<void> broadcastThemeChanged(String themeModeName) async {
     if (!isDesktopPlatform) return;
     if (_openWindows.isEmpty) return;
-    try {
-      await _channel.invokeMethod('themeChanged', themeModeName).catchError((_) => null);
-    } catch (_) {}
     for (final windowId in _openWindows.values) {
       try {
         final controller = WindowController.fromWindowId(windowId);
@@ -172,18 +190,24 @@ class MultiWindowService {
   }
 
   /// Initialize listener in a Sub-Window (Sticky Note) to receive updates like theme changes
-  static void initSubWindowListener({
+  static Future<void> initSubWindowListener({
+    required String windowId,
     required void Function(String themeModeName) onThemeChanged,
-  }) {
+  }) async {
     if (kIsWeb || (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS)) return;
-    _channel.setMethodCallHandler((call) async {
-      if (call.method == 'themeChanged') {
-        final modeName = call.arguments as String?;
-        if (modeName != null) {
-          onThemeChanged(modeName);
+    try {
+      final controller = WindowController.fromWindowId(windowId);
+      await controller.setWindowMethodHandler((call) async {
+        if (call.method == 'themeChanged') {
+          final modeName = call.arguments as String?;
+          if (modeName != null) {
+            onThemeChanged(modeName);
+          }
         }
-      }
-      return null;
-    });
+        return null;
+      });
+    } catch (e) {
+      debugPrint('Error initializing sub-window listener: $e');
+    }
   }
 }

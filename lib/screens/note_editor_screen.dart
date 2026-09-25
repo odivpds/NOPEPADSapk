@@ -38,6 +38,7 @@ class _NoteEditorAppState extends ConsumerState<NoteEditorApp> {
   void initState() {
     super.initState();
     MultiWindowService.initSubWindowListener(
+      windowId: widget.windowId,
       onThemeChanged: (themeModeName) {
         if (!mounted) return;
         if (themeModeName == 'dark') {

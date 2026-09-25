@@ -249,7 +249,11 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     }
   }
 
+  bool _isCreatingNote = false;
+
   Future<void> _createNote() async {
+    if (_isCreatingNote) return;
+    _isCreatingNote = true;
     try {
       final repo = ref.read(notesRepositoryProvider);
       final newNote = Note(
@@ -271,10 +275,12 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               .then((_) => _loadData());
         }
       } else {
-        ref.read(multiWindowServiceProvider).openStickyNote(newNote.id, title: 'Sticky Note');
+        await ref.read(multiWindowServiceProvider).openStickyNote(newNote.id, title: 'Sticky Note');
       }
     } catch (e) {
       debugPrint('Error creating note: $e');
+    } finally {
+      _isCreatingNote = false;
     }
   }
 

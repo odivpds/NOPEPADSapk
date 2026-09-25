@@ -44,11 +44,19 @@ void main(List<String> args) async {
       if (windowController.arguments.isNotEmpty) {
         final argument = jsonDecode(windowController.arguments) as Map<String, dynamic>;
         final noteId = argument['noteId'] as String?;
+        final offsetX = (argument['offsetX'] as num?)?.toDouble() ?? 0.0;
+        final offsetY = (argument['offsetY'] as num?)?.toDouble() ?? 0.0;
         if (noteId != null && noteId.isNotEmpty) {
           await windowManager.setTitleBarStyle(TitleBarStyle.hidden, windowButtonVisibility: false);
           await windowManager.setSize(const Size(460, 520));
           await windowManager.setMinimumSize(const Size(360, 380));
           await windowManager.setTitle('NOPEPADS');
+          if (offsetX > 0 || offsetY > 0) {
+            try {
+              final pos = await windowManager.getPosition();
+              await windowManager.setPosition(Offset(pos.dx + offsetX, pos.dy + offsetY));
+            } catch (_) {}
+          }
 
           runApp(
             ProviderScope(
@@ -74,6 +82,8 @@ void main(List<String> args) async {
         ? jsonDecode(args[2]) as Map<String, dynamic>
         : <String, dynamic>{};
     final noteId = argument['noteId'] as String?;
+    final offsetX = (argument['offsetX'] as num?)?.toDouble() ?? 0.0;
+    final offsetY = (argument['offsetY'] as num?)?.toDouble() ?? 0.0;
 
     if (noteId != null && noteId.isNotEmpty) {
       if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
@@ -83,6 +93,12 @@ void main(List<String> args) async {
           await windowManager.setSize(const Size(460, 520));
           await windowManager.setMinimumSize(const Size(360, 380));
           await windowManager.setTitle('NOPEPADS');
+          if (offsetX > 0 || offsetY > 0) {
+            try {
+              final pos = await windowManager.getPosition();
+              await windowManager.setPosition(Offset(pos.dx + offsetX, pos.dy + offsetY));
+            } catch (_) {}
+          }
         } catch (_) {}
       }
 
